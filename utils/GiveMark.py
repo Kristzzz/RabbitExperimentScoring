@@ -95,16 +95,15 @@ class CheckCatching(GiveMark):
             rabbit_c_y = (rabbit_pos[1] + rabbit_pos[3]) / 2 / h
 
             if 640 / w < rabbit_c_x < 1280 / w and 360 / h < rabbit_c_y < 720 / h:
-                if checkedObjects[3][0] == 1 and checkedObjects[4][0] == 1:
-                    hand_pos = checkedObjects[3][2][0]
-                    ear_pos = checkedObjects[4][2][0]
-                    judge = self.judge_catching(hand_pos, ear_pos, w, h)
-                    if judge:
-                        self.transcript['Catch'] = 10
-                    else:
-                        self.transcript['Catch'] = 0
-                    # print('抓拿判定结束')
-                    return True
+                if len(checkedObjects[3][2]) < 2 and checkedObjects[3][0] == 1:  # 手出现 且 只有1个坐标数组
+                    if checkedObjects[4][0] == 1:
+                        hand_pos = checkedObjects[3][2][0]
+                        ear_pos = checkedObjects[4][2][0]
+                        judge = self.judge_catching(hand_pos, ear_pos, w, h)
+                        if judge:
+                            self.transcript['Catch'] = 10
+                        # print('抓拿判定结束')
+                        return True
 
     def judge_catching(self, hand_pos, ear_pos, w, h):
         for i in range(4):
@@ -128,11 +127,10 @@ class CheckCatching(GiveMark):
             s = (hand_pos[2] - hand_pos[0]) * (hand_pos[3] - hand_pos[1])
             iou_res = s_iou / s
 
-        if iou_res > .5:
-            print('抓耳朵')
-            return False
-        else:
+        if iou_res < .5:
             return True
+        else:
+            return False
 
 
 class CheckNeedle(GiveMark):
