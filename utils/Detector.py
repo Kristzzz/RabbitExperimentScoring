@@ -50,7 +50,7 @@ class Detector:
         obj_name = ['兔子', '剪刀', '伤口', '手', '耳朵', '针头']
         checked_obj = self._checkedObjects[:6]
         stage_name = ['抓拿', '麻醉', '固定', '手术']
-        now_stage = stage_name[self._checkedObjects[6][0]]
+        now_stage = stage_name[self._checkedObjects[5][0]]
         print("Stage :", now_stage)
         for obj_name, obj in zip(obj_name, checked_obj):
             print("【", obj_name, "】", ": ", obj[0], " ", obj[1], obj[2], end=" ")
