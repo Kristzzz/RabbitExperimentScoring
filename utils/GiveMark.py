@@ -1,5 +1,8 @@
 import json
 import sys
+import numpy as np
+
+import utils.stage_funcs.injection_function
 
 sys.path.append('utils/')
 
@@ -36,7 +39,7 @@ class GradeSYS:
         return "{}".format(self.commandLine[0])
 
     def print_transcript(self):
-        print('now your transcript is: ', self.transcript)
+        print(self.transcript)
 
     def get_transcript(self):
         return self.transcript
@@ -137,18 +140,45 @@ class CheckNeedle(GiveMark):
     """
     TODO
     """
+    def __init__(self, transcript):
+        super().__init__(transcript)
+        self.checkMax = 40
+        self.injectionCheck = utils.stage_funcs.injection_function.InjectionUtil()
+        self.checkList = np.zeros(self.checkMax)
+        self.cur = 0
+
+        self.stage = False
+
+    def nextCur(self):
+        self.cur += 1
+        if self.cur >= self.checkMax:
+            self.cur = 0
 
     def give_mark(self, checkedObjects, w, h):
         if checkedObjects[2][0] == 1:
             self.transcript['Needle'] = 0
+            print('针头检测结束')
+            self.stage = False
             return True
+
+        if checkedObjects[5][0] == 1:
+            self.stage = True
+
         # print("针头检测开始...")
-        needle_appearance = checkedObjects[5][1]
-        if needle_appearance > self.minTimes:
-            self.transcript['Needle'] = 10
-            return True
-        # print("针头检测结束")
-        return False
+        if self.stage:
+            self.checkList[self.cur] = self.injectionCheck.hand_stable(checkedObjects)
+            self.nextCur()
+
+            true = 0
+            for check in self.checkList:
+                if check == 1:
+                    true += 1
+            if true == self.checkMax:
+                self.transcript['Needle'] = 10
+                print('针头检测结束')
+                self.stage = False
+                return True
+            return False
 
 
 class CheckFixed(GiveMark):
