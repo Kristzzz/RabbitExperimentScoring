@@ -5,6 +5,10 @@ import numpy as np
 from utils.GiveMark import GradeSYS
 from utils.time_clock import clock
 
+def notPic():
+    print('输入对象不是图片')
+    exit(0)
+
 
 class Detector:
     """
@@ -69,7 +73,7 @@ class Detector:
                                                  swapRB=False, crop=False))
 
     def check_img(self, img):
-        assert (isinstance(img, np.ndarray)), "输入对象不是图片!"
+        assert (isinstance(img, np.ndarray)), notPic()
         self.reset_obj()
 
         # 1. Find and rectangle object

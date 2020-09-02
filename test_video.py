@@ -1,6 +1,5 @@
 """test file."""
 import cv2
-import time
 from utils.GiveMark import GradeSYS
 from utils.Detector import Detector
 
@@ -37,7 +36,10 @@ while video_cap.isOpened():
         cv2.putText(img, now_stage, (20, 70), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 0), 1)
 
     cv2.imshow('Rabbit Experiments & Now scoring:', img)
-    cv2.waitKey(25)
+    keyBoard = cv2.waitKey(1)
+    if keyBoard == ord('q'):
+        cv2.destroyAllWindows()
+        break
 
 transript = grade_sys.get_transcript()
 if len(transript) < num_of_stage:
