@@ -1,5 +1,6 @@
 # function used in injection procedure
 import numpy as np
+import cv2
 
 
 def matchByDist(lastHand, curHand):
@@ -70,11 +71,30 @@ def iouBetweenEarAndHand(earArr, handarr):
     return iou
 
 
+def GetLargestIoUCor(earArr, handArr):
+    maxIou = 0
+    maxIndex = 0
+
+    for index in range(len(handArr)):
+        iou = iouBetweenEarAndHand(earArr, handArr[index])
+        if iou > maxIou:
+            maxIou = iou
+            maxIndex = index
+
+    xA = max(earArr[0], handArr[maxIndex][0])
+    yA = max(earArr[1], handArr[maxIndex][1])
+    xB = min(earArr[2], handArr[maxIndex][2])
+    yB = min(earArr[3], handArr[maxIndex][3])
+
+    return xA, yA, xB, yB
+
+
 class InjectionUtil:
 
-    def __init__(self, okDist=100, maxCache=5):
+    def __init__(self, okDist=100, maxCache=5, zoomThreshold=50):
         self.okDist = okDist
         self.maxCache = maxCache
+        self.zoomThreshold = zoomThreshold
         self.cache = Cache(maxCache=maxCache)
 
     def hand_stable(self, check_objects):
@@ -120,6 +140,54 @@ class InjectionUtil:
     def calc_dist(self, handArr):
         lastHand = self.cache.getLastCache()
         return matchByDist(lastHand, handArr)
+
+    def needle_search(self, img_cv, check_objects):
+        earShow = check_objects[4][0]
+        earArrRaw = check_objects[4][2]
+        if earArrRaw.shape[0] > 0:
+            earArr = earArrRaw[0]
+        else:
+            earArr = earArrRaw
+
+        handShow = check_objects[3][0]
+        handArrRaw = list(check_objects[3][2])
+
+        handArr = []
+        for array in handArrRaw:
+            handArr.append(list(array))
+
+        if earShow != 1:
+            return 0
+        throwFarAwayCor(earArr, handArr)
+
+        if handShow != 1:
+            return 0
+
+        xA, yA, xB, yB = GetLargestIoUCor(earArr, handArr)
+        xA -= self.zoomThreshold
+        yA -= self.zoomThreshold
+        xB += self.zoomThreshold
+        yB += self.zoomThreshold
+
+        croppedCv = img_cv[yA: yB, xA: xB]
+        if croppedCv.shape[0] <= 0 or croppedCv.shape[1] <= 1 or croppedCv.shape[2] <= 2:
+            return 0
+        # cv2.imwrite('cv.jpg', croppedCv)
+        prop = 3
+        croppedCv = cv2.resize(croppedCv,
+                               (int(croppedCv.shape[0] * prop),
+                                int(croppedCv.shape[1] * prop)),
+                               interpolation=cv2.INTER_CUBIC)
+
+        # orb =  cv2.ORB_create()
+        # kp = orb.detect(croppedCv, None)
+        # kp, des = orb.compute(img, kp)
+        # croppedCv = cv2.drawKeypoints(croppedCv, kp, croppedCv)
+
+        cv2.namedWindow('cropped cv', cv2.WINDOW_AUTOSIZE)
+        cv2.imshow('cropped cv', croppedCv)
+        # cv2.destroyWindow('cropped cv')
+        # cv2.imwrite('croppedCv.jpg', croppedCv)
 
 
 class Cache:
@@ -171,6 +239,32 @@ class Cache:
 
 
 if __name__ == '__main__':
-    x = [[1, 2, 3]]
-    print(sum(sum(x, [])))
+    import cv2
+    from utils.Detector import Detector
 
+    video_path = '../../video/RabbitVideo_Trim.mp4'
+
+    jason_file_path = '../../ScoresLine.json'
+    deploy_path = '../../detecting_files/no_bn.prototxt'
+    model_path = '../../detecting_files/no_bn.caffemodel'
+
+    injectionUtils = InjectionUtil()
+    detector = Detector(deploy_path, model_path, jason_file_path)
+    video_cap = cv2.VideoCapture(video_path)
+
+    while video_cap.isOpened():
+        ret, img = video_cap.read()
+        assert (img is not None), {print('FINISHED'), exit(0)}
+        imgCv = img.copy()
+        # imgCv = cv2.resize(img, (960, 540))
+        img = detector.check_img(img)
+
+        checkObjects = detector.checkedObjects
+        injectionUtils.needle_search(imgCv, checkObjects)
+
+        cv2.imshow('imgDetected', img)
+
+        keyBoard = cv2.waitKey(20)
+        if keyBoard == ord('q'):
+            cv2.destroyAllWindows()
+            break
