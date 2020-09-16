@@ -3,7 +3,9 @@ import cv2
 from utils.GiveMark import GradeSYS
 from utils.Detector import Detector
 
+# video_path = './video/RVUTest.mp4'
 video_path = './video/RabbitVideo.mp4'
+# video_path = './video/RabbitVideo_Trim.mp4'
 
 jason_file_path = './ScoresLine.json'
 deploy_path = './detecting_files/no_bn.prototxt'
@@ -19,11 +21,14 @@ video_cap = cv2.VideoCapture(video_path)
 
 while video_cap.isOpened():
     ret, img = video_cap.read()
+    assert (img is not None), {print('视频结束。'), exit(0)}
+    imgCv = img.copy()
+    cv2.imwrite('template/CurrentImg.jpg', img)
     img = detector.check_img(img)
     w, h, *_ = img.shape
     # detector.print_checked_objects()
     obj = detector.checkedObjects
-    flag = grade_sys.begin_mark_line(detector.checkedObjects, w, h)
+    flag = grade_sys.begin_mark_line(detector.checkedObjects, w, h, imgCv, img)
     if flag:
         # grade_sys.print_transcript()
         transript = grade_sys.get_transcript()
