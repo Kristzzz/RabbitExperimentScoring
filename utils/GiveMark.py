@@ -194,7 +194,11 @@ class CheckFixed(GiveMark):
         self.stage = False
 
     def give_mark(self, checkedObjects, w, h, origin_img, detected_img):
-
+        if checkedObjects[2][0] == 1:
+            self.transcript['fixed'] = 0
+            print('固定检测结束')
+            self.stage = False
+            return True
 
         if len(checkedObjects[0]) >0 and len(checkedObjects[0][2]>0):
             rabbit_pos = checkedObjects[0][2][0]
